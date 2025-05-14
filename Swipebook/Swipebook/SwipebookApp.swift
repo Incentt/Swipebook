@@ -10,6 +10,18 @@ import SwiftData
 
 @main
 struct SwipebookApp: App {
+    init() {
+        // Force the app to always use dark mode
+        UIApplication.shared.windows.first?.overrideUserInterfaceStyle = .dark
+        // Large Navigation Title
+        UINavigationBar
+            .appearance().largeTitleTextAttributes = [.foregroundColor: UIColor.white]
+        // Inline Navigation Title
+        UINavigationBar
+            .appearance().titleTextAttributes = [.foregroundColor: UIColor.white]
+        UITabBar.appearance().backgroundColor = .tabView
+
+    }
     var sharedModelContainer: ModelContainer = {
         let schema = Schema([
             Item.self,
