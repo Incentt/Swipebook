@@ -19,8 +19,6 @@ struct SwipebookApp: App {
         // Inline Navigation Title
         UINavigationBar
             .appearance().titleTextAttributes = [.foregroundColor: UIColor.white]
-        UITabBar.appearance().backgroundColor = .tabView
-
     }
     var sharedModelContainer: ModelContainer = {
         let schema = Schema([

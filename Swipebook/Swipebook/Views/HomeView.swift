@@ -150,7 +150,7 @@ struct BookView: View {
                 .foregroundColor(.white)
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .padding(.horizontal, 20)
-                .padding(.top, 14)
+                .padding(.vertical, 14)
             
             // Room List
             ScrollView {
@@ -214,6 +214,7 @@ struct ProfileView: View {
 
 // MARK: - Main Home View with TabView
 struct HomeView: View {
+  
     @ObservedObject var loginController: LoginController
     @StateObject private var homeController = HomeController()
     
@@ -221,10 +222,10 @@ struct HomeView: View {
         TabView(selection: $homeController.selectedTabIndex) {
             // Book Tab
             NavigationStack {
-                BookView(controller: homeController)
+                BookView(controller: homeController).toolbarBackground(.tabView, for: .tabBar)
             }
             .tabItem {
-                Image(systemName: "book.fill")
+                Image(systemName: "star.fill")
                 Text("Book")
             }
             .tag(0)
@@ -238,6 +239,21 @@ struct HomeView: View {
                 Text("Scan QR")
             }
             .tag(1)
+            .overlay(
+                ZStack {
+                    Circle()
+                        .fill(Color.primaryOrange)
+                        .frame(width: 70, height: 70)
+                        .offset(y: -15)
+                    
+                    Image(systemName: "qrcode")
+                        .resizable()
+                        .aspectRatio(contentMode: .fit)
+                        .frame(width: 30, height: 30)
+                        .foregroundColor(.white)
+                        .offset(y: -15)
+                }
+            )
             
             // Logout Tab
             NavigationStack {
@@ -248,7 +264,7 @@ struct HomeView: View {
                 Text("Log Out")
             }
             .tag(2)
-        }.padding(.top, 14)
+        }
         .accentColor(.primaryOrange)
     }
 }

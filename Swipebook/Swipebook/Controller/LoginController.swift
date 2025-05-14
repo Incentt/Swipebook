@@ -4,12 +4,6 @@
 //
 //  Created by Vincent Wisnata on 14/05/25.
 //
-//
-//  LoginController.swift
-//  Swipebook
-//
-//  Created by Vincent Wisnata on 14/05/25.
-//
 
 import Foundation
 import SwiftUI
