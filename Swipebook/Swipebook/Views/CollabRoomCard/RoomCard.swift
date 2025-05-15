@@ -27,8 +27,8 @@ struct RoomCard: View {
                             .fontWeight(.bold)
                             .foregroundColor(.background)
                         
-                        Text(room.roomType.rawValue) // Display the room type
-                            .font(.subheadline)
+//                        Text(room.roomType.rawValue) // Display the room type
+//                            .font(.subheadline)
                     }
                     Spacer()
                     
