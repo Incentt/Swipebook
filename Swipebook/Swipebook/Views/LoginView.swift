@@ -4,12 +4,6 @@
 //
 //  Created by Vincent Wisnata on 14/05/25.
 //
-//
-//  LoginView.swift
-//  Swipebook
-//
-//  Created by Vincent Wisnata on 14/05/25.
-//
 
 import SwiftUI
 import SwiftData

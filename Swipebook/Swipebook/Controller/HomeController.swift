@@ -2,76 +2,110 @@
 //  HomeController.swift
 //  Swipebook
 //
-//  Created by Vincent Wisnata on 14/05/25.
+//  Created by Vincent Wisnata on 15/05/25.
 //
 
-
-import Foundation
 import SwiftUI
 import Combine
 
 class HomeController: ObservableObject {
-    // Room data
-    private let roomDataProvider = RoomDataProvider.shared
+    // MARK: - Published properties
+    @Published var selectedTabIndex = 0
+    @Published var selectedSessionId: UUID?
     @Published var availableRooms: [Room] = []
-    
-    // Time selection
-    @Published var selectedStartTime: Date = TimeFormatter.getDefaultStartTime()
-    @Published var selectedEndTime: Date = TimeFormatter.getDefaultEndTime()
-    
-    // Tab selection
-    @Published var selectedTabIndex: Int = 0
-    
-    // Booking state
-    @Published var isBookingRoom: Bool = false
     @Published var selectedRoom: Room?
-    @Published var bookingSuccess: Bool = false
-    @Published var bookingError: String?
+    @Published var bookingSuccess = false
+    @Published var availableSessions: [Session] = []
     
+    // Session and room data providers
+    private let roomDataProvider = RoomDataProvider.shared
+    private let sessionDataProvider = SessionDataProvider.shared
+    
+    // Cancellable storage
     private var cancellables = Set<AnyCancellable>()
     
+    // MARK: - Computed properties
+    var selectedSession: Session? {
+        guard let sessionId = selectedSessionId else { return nil }
+        return sessionDataProvider.getSession(byId: sessionId)
+    }
+    
+    // MARK: - Initialization
     init() {
-        // Load initial data
-        refreshAvailableRooms()
+        // Load all available sessions
+        self.loadAvailableSessions()
         
-        // Set up publishers to refresh rooms when time changes
-        $selectedStartTime
-            .combineLatest($selectedEndTime)
-            .debounce(for: 0.3, scheduler: RunLoop.main)
-            .sink { [weak self] startTime, endTime in
-                self?.refreshAvailableRooms()
+        // Set a default session if available
+        if let defaultSession = sessionDataProvider.getCurrentOrNextSession() {
+            self.selectedSessionId = defaultSession.id
+        }
+        
+        // Load available rooms for the selected session
+        self.loadAvailableRooms()
+        
+        // Set up listeners for session selection changes
+        self.setupSubscriptions()
+    }
+    
+    // MARK: - Private methods
+    private func setupSubscriptions() {
+        // Monitor changes to the selected session
+        $selectedSessionId
+            .sink { [weak self] _ in
+                self?.loadAvailableRooms()
             }
             .store(in: &cancellables)
     }
     
-    func refreshAvailableRooms() {
-        availableRooms = roomDataProvider.getAvailableRooms(
-            forStartTime: selectedStartTime,
-            endTime: selectedEndTime
-        )
+    private func loadAvailableSessions() {
+        // Get all predefined sessions from the provider
+        availableSessions = sessionDataProvider.getAllSessions()
     }
     
-    func bookRoom(_ room: Room) {
-        // In a real app, this would communicate with the backend
-        isBookingRoom = true
-        selectedRoom = room
+    private func loadAvailableRooms() {
+        guard let sessionId = selectedSessionId else {
+            availableRooms = []
+            return
+        }
         
-        // Simulate network request
-        DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) { [weak self] in
-            self?.isBookingRoom = false
-            self?.bookingSuccess = true
-            
-            // Reset after showing success message
-            DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) { [weak self] in
-                self?.bookingSuccess = false
-                self?.selectedRoom = nil
-            }
+        // Get all rooms
+        let allRooms = roomDataProvider.rooms
+        
+        // Filter for available rooms based on selected session
+        availableRooms = allRooms.filter { room in
+            // Check if the room is available for the selected session
+            return sessionDataProvider.isRoomAvailable(
+                roomId: room.id,
+                sessionId: sessionId
+            )
         }
     }
     
-    func updateTimeRange(startTime: Date, endTime: Date) {
-        selectedStartTime = startTime
-        selectedEndTime = endTime
-        refreshAvailableRooms()
+    // MARK: - Public methods
+    func bookRoom(_ room: Room) {
+        guard let sessionId = selectedSessionId else { return }
+        
+        // Set selected room
+        selectedRoom = room
+        
+        // Book the session for the room
+        let bookingSuccessful = sessionDataProvider.bookSession(
+            roomId: room.id,
+            sessionId: sessionId
+        )
+        
+        // Show success message
+        if bookingSuccessful {
+            bookingSuccess = true
+            
+            // Reload available rooms after booking
+            loadAvailableRooms()
+        }
+    }
+    
+    // Reset booking
+    func resetBooking() {
+        selectedRoom = nil
+        bookingSuccess = false
     }
 }

@@ -22,62 +22,6 @@ struct FeatureTag: View {
     }
 }
 
-// Time Range Slider View
-struct TimeRangeSlider: View {
-    let startTime: Date
-    let endTime: Date
-    
-    var body: some View {
-        HStack(spacing: 0) {
-            // Time Range Display
-            Text("\(TimeFormatter.formatTime(startTime)) - \(TimeFormatter.formatTime(endTime))")
-                .font(.headline)
-                .padding(.top, 5)
-            // Start time label
-            Text("08:45")
-                .font(.caption)
-                .foregroundColor(.orange)
-                .offset(y: -20)
-                .padding(.leading, 20)
-            
-            // Time Slider
-            ZStack(alignment: .leading) {
-                // Timeline
-                Rectangle()
-                    .fill(Color.gray.opacity(0.3))
-                    .frame(height: 2)
-                    .padding(.horizontal, 20)
-                
-                // Start time handle
-                Circle()
-                    .fill(Color.white)
-                    .frame(width: 20, height: 20)
-                    .padding(.leading, 20)
-                
-                // End time handle
-                Circle()
-                    .fill(Color.white)
-                    .frame(width: 20, height: 20)
-                    .padding(.leading, 100)
-                
-                // Active range
-                Rectangle()
-                    .fill(Color.orange)
-                    .frame(width: 80, height: 2)
-                    .padding(.leading, 20)
-            }
-            .frame(height: 30)
-            .padding(.vertical, 10)
-            // End time label
-            Text("17:00")
-                .font(.caption)
-                .foregroundColor(.green)
-                .frame(maxWidth: .infinity, alignment: .trailing)
-                .offset(y: -20)
-                .padding(.trailing, 20)
-        }
-    }
-}
 
 // MARK: - Main Views
 struct BookView: View {
@@ -85,46 +29,133 @@ struct BookView: View {
     
     var body: some View {
         VStack(spacing: 0) {
-            // Time Range Slider
-            TimeRangeSlider(
-                startTime: controller.selectedStartTime,
-                endTime: controller.selectedEndTime
+            // Session Slider - single slider that jumps between predefined sessions
+            SessionSlider(
+                selectedSessionId: $controller.selectedSessionId,
+                sessions: controller.availableSessions
             )
+            .padding(.bottom, 16)
+            
+            // Divider
+            Rectangle()
+                .fill(Color.gray.opacity(0.3))
+                .frame(height: 1)
+                .padding(.horizontal, 20)
+                .padding(.vertical, 8)
             
             // Available Rooms Text
-            Text("Available Room").font(.title3)
-                .foregroundColor(.white)
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .padding(.horizontal, 20)
-                .padding(.vertical, 14)
+            HStack {
+                Text("Available Rooms")
+                    .font(.title3)
+                    .foregroundColor(.white)
+                
+                Spacer()
+                
+                Text("\(controller.availableRooms.count) Found")
+                    .font(.subheadline)
+                    .foregroundColor(.gray)
+            }
+            .padding(.horizontal, 20)
+            .padding(.vertical, 14)
             
-            // Room List
-            ScrollView {
-                LazyVStack(spacing: 15) {
-                    ForEach(controller.availableRooms) { room in
-                        RoomCard(room: room) {
-                            controller.bookRoom(room)
+            // If no session is selected
+            if controller.selectedSessionId == nil {
+                Spacer()
+                VStack(spacing: 12) {
+                    Image(systemName: "calendar")
+                        .font(.system(size: 50))
+                        .foregroundColor(.gray)
+                    
+                    Text("Select a Session")
+                        .font(.title3)
+                        .foregroundColor(.white)
+                    
+                    Text("Use the slider above to select a time slot")
+                        .font(.subheadline)
+                        .foregroundColor(.gray)
+                        .multilineTextAlignment(.center)
+                }
+                .padding()
+                Spacer()
+            }
+            // If no rooms are available for the selected session
+            else if controller.availableRooms.isEmpty {
+                Spacer()
+                VStack(spacing: 12) {
+                    Image(systemName: "calendar.badge.exclamationmark")
+                        .font(.system(size: 50))
+                        .foregroundColor(.gray)
+                    
+                    Text("No Available Rooms")
+                        .font(.title3)
+                        .foregroundColor(.white)
+                    
+                    Text("Try selecting a different session")
+                        .font(.subheadline)
+                        .foregroundColor(.gray)
+                        .multilineTextAlignment(.center)
+                }
+                .padding()
+                Spacer()
+            }
+            // Room list
+            else {
+                ScrollView {
+                    LazyVStack(spacing: 15) {
+                        ForEach(controller.availableRooms) { room in
+                            RoomCard(room: room) {
+                                controller.bookRoom(room)
+                            }
                         }
                     }
+                    .padding(.horizontal, 20)
+                    .padding(.bottom, 100)
+                    .padding(.vertical, 10)
                 }
-                .padding(.horizontal, 20)
-                .padding(.bottom, 100)
-                .padding(.vertical, 10)
             }
         }
-        .navigationTitle("Select Time and Room")
+        .navigationTitle("Book a Room")
         .navigationBarTitleDisplayMode(.large)
         .background(Color.background)
         .alert(isPresented: $controller.bookingSuccess) {
             Alert(
                 title: Text("Booking Successful"),
-                message: Text("You've booked \(controller.selectedRoom?.name ?? "a room") for \(TimeFormatter.formatTime(controller.selectedStartTime)) - \(TimeFormatter.formatTime(controller.selectedEndTime))"),
-                dismissButton: .default(Text("OK"))
+                message: Text(getBookingConfirmationMessage()),
+                dismissButton: .default(Text("OK")) {
+                    controller.resetBooking()
+                }
             )
         }
     }
+    
+    // Helper to get booking confirmation message
+    private func getBookingConfirmationMessage() -> String {
+        guard let session = controller.selectedSession,
+              let room = controller.selectedRoom else {
+            return "You've booked a room successfully."
+        }
+        
+        return "You've booked \(room.name) for \(session.timeRangeString)."
+    }
+    
+    // Helper to calculate and format duration
+    private func getDurationString(from startTime: Date, to endTime: Date) -> String {
+        let minutes = Calendar.current.dateComponents([.minute], from: startTime, to: endTime).minute ?? 0
+        
+        if minutes >= 60 {
+            let hours = minutes / 60
+            let remainingMinutes = minutes % 60
+            
+            if remainingMinutes == 0 {
+                return "\(hours)h"
+            } else {
+                return "\(hours)h \(remainingMinutes)m"
+            }
+        } else {
+            return "\(minutes)m"
+        }
+    }
 }
-
 struct ScanQRView: View {
     var body: some View {
         VStack {
