@@ -13,6 +13,7 @@ class HomeController: ObservableObject {
     @Published var selectedTabIndex = 0
     @Published var selectedSessionId: UUID?
     @Published var availableRooms: [Room] = []
+    @Published var unavailableRooms: [Room] = []
     @Published var selectedRoom: Room?
     @Published var bookingSuccess = false
     @Published var availableSessions: [Session] = []
@@ -65,20 +66,28 @@ class HomeController: ObservableObject {
     private func loadAvailableRooms() {
         guard let sessionId = selectedSessionId else {
             availableRooms = []
+            unavailableRooms = []
             return
         }
         
         // Get all rooms
         let allRooms = roomDataProvider.rooms
         
-        // Filter for available rooms based on selected session
-        availableRooms = allRooms.filter { room in
-            // Check if the room is available for the selected session
-            return sessionDataProvider.isRoomAvailable(
-                roomId: room.id,
-                sessionId: sessionId
-            )
+        // Split rooms into available and unavailable for the selected session
+        var available: [Room] = []
+        var unavailable: [Room] = []
+        
+        for room in allRooms {
+            if sessionDataProvider.isRoomAvailable(roomId: room.id, sessionId: sessionId) {
+                available.append(room)
+            } else {
+                unavailable.append(room)
+            }
         }
+        
+        // Update the published properties
+        self.availableRooms = available
+        self.unavailableRooms = unavailable
     }
     
     // MARK: - Public methods

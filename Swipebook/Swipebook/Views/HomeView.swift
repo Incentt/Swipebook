@@ -36,6 +36,7 @@ struct BookView: View {
             )
             .padding(.bottom, 16)
             
+            
             // Divider
             Rectangle()
                 .fill(Color.gray.opacity(0.3))
@@ -79,7 +80,7 @@ struct BookView: View {
                 Spacer()
             }
             // If no rooms are available for the selected session
-            else if controller.availableRooms.isEmpty {
+            else if controller.availableRooms.isEmpty && controller.unavailableRooms.isEmpty {
                 Spacer()
                 VStack(spacing: 12) {
                     Image(systemName: "calendar.badge.exclamationmark")
@@ -98,13 +99,42 @@ struct BookView: View {
                 .padding()
                 Spacer()
             }
-            // Room list
+            // Room lists
             else {
                 ScrollView {
                     LazyVStack(spacing: 15) {
-                        ForEach(controller.availableRooms) { room in
-                            RoomCard(room: room) {
-                                controller.bookRoom(room)
+                        // Available rooms section
+                        if !controller.availableRooms.isEmpty {
+                            ForEach(controller.availableRooms) { room in
+                                RoomCard(room: room) {
+                                    controller.bookRoom(room)
+                                }
+                            }
+                        }
+                        
+                        // Unavailable rooms section (if any)
+                        if !controller.unavailableRooms.isEmpty {
+                            // Section divider
+                            Divider()
+                                .padding(.vertical, 16)
+                            
+                            // Unavailable Rooms Header
+                            HStack {
+                                Text("Unavailable Rooms")
+                                    .font(.title3)
+                                    .foregroundColor(.white)
+                                
+                                Spacer()
+                                
+                                Text("\(controller.unavailableRooms.count) Rooms")
+                                    .font(.subheadline)
+                                    .foregroundColor(.gray)
+                            }
+                            .padding(.vertical, 14)
+                            
+                            // Unavailable room cards
+                            ForEach(controller.unavailableRooms) { room in
+                                UnavailableRoomCard(room: room)
                             }
                         }
                     }
@@ -156,6 +186,7 @@ struct BookView: View {
         }
     }
 }
+
 struct ScanQRView: View {
     var body: some View {
         VStack {
