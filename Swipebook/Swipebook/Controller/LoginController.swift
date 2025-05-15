@@ -17,6 +17,9 @@ class LoginController: ObservableObject {
     @Published var showAlert: Bool = false
     @Published var alertMessage: String = ""
     
+    // Add a new property for logout confirmation
+    @Published var showLogoutConfirmation: Bool = false
+    
     // User token after successful login
     @Published var userToken: String? = nil
     
@@ -72,7 +75,12 @@ class LoginController: ObservableObject {
         }
     }
     
-    // Function to log out
+    // Function to request logout confirmation
+    func requestLogout() {
+        showLogoutConfirmation = true
+    }
+    
+    // Function to log out (unchanged)
     func logout() {
         isAuthenticated = false
         userToken = nil

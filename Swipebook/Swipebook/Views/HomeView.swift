@@ -7,60 +7,6 @@
 
 import SwiftUI
 
-// MARK: - View Components
-struct RoomCard: View {
-    let room: Room
-    let bookAction: () -> Void
-    
-    var body: some View {
-        ZStack {
-            RoundedRectangle(cornerRadius: 12)
-                .fill(room.color)
-                .frame(height: 120)
-            
-            HStack {
-                VStack(alignment: .leading, spacing: 5) {
-                    Text(room.name)
-                        .font(.title3)
-                        .fontWeight(.bold)
-                        .foregroundColor(.background)
-                    
-                    Text("Available")
-                        .font(.subheadline)
-                        .foregroundColor(.black.opacity(0.8))
-                    
-                    HStack(spacing: 8) {
-                        FeatureTag(text: "\(room.capacity) People")
-                        
-                        ForEach(room.features, id: \.self) { feature in
-                            FeatureTag(text: feature)
-                        }
-                    }
-                    .padding(.top, 5)
-                }
-                .padding(.leading, 15)
-                
-                Spacer()
-                
-                Button(action: bookAction) {
-                    HStack {
-                        Text("Book")
-                            .fontWeight(.medium)
-                        
-                        Image(systemName: "arrow.right")
-                    }
-                    .foregroundColor(.white)
-                    .padding(.horizontal, 15)
-                    .padding(.vertical, 10)
-                    .background(Color.black.opacity(0.7))
-                    .cornerRadius(20)
-                }
-                .padding(.trailing, 15)
-            }
-            .padding(.vertical, 10)
-        }
-    }
-}
 
 // Feature Tag View
 struct FeatureTag: View {
@@ -162,6 +108,7 @@ struct BookView: View {
                     }
                 }
                 .padding(.horizontal, 20)
+                .padding(.bottom, 100)
                 .padding(.vertical, 10)
             }
         }
@@ -188,86 +135,124 @@ struct ScanQRView: View {
     }
 }
 
-struct ProfileView: View {
+// MARK: - Custom Tab Bar Components
+struct CustomTabBar: View {
+    @Binding var selectedTab: Int
     @ObservedObject var loginController: LoginController
     
     var body: some View {
-        VStack {
-            Text("Account Settings")
-                .font(.headline)
-                .padding(.bottom, 30)
-            
-            Button(action: {
-                loginController.logout()
-            }) {
-                Text("Log Out")
-                    .fontWeight(.semibold)
-                    .foregroundColor(.white)
-                    .frame(width: 200, height: 50)
-                    .background(Color.red.opacity(0.7))
-                    .cornerRadius(10)
+        ZStack {
+            // Tab items
+            HStack {
+                // Book Tab Button
+                Button(action: {
+                    selectedTab = 0
+                }) {
+                    VStack(spacing: 4) {
+                        Image(systemName: "book.fill")
+                            .resizable()
+                            .scaledToFit()
+                            .frame(width: 22, height: 22)
+                            .foregroundColor(selectedTab == 0 ? .primaryOrange : .gray)
+                        
+                        Text("Book")
+                            .font(.caption)
+                            .foregroundColor(selectedTab == 0 ? .primaryOrange : .gray)
+                    }
+                }
+                .frame(maxWidth: .infinity)
+                
+                // Middle spacer for QR button
+                Spacer()
+                    .frame(maxWidth: .infinity)
+                
+                // Log Out Tab Button
+                Button(action: {
+                    loginController.requestLogout()
+                }) {
+                    VStack(spacing: 4) {
+                        Image(systemName: "person.fill")
+                            .resizable()
+                            .scaledToFit()
+                            .frame(width: 22, height: 22)
+                            .foregroundColor(selectedTab == 2 ? .primaryOrange : .gray)
+                        
+                        Text("Log Out")
+                            .font(.caption)
+                            .foregroundColor(selectedTab == 2 ? .primaryOrange : .gray)
+                    }
+                }
+                .frame(maxWidth: .infinity)
             }
+            .padding(.horizontal, 30).padding(.vertical, 12)
         }
-        .navigationTitle("Profile")
+        .background(.tabView)
+        .alert(isPresented: $loginController.showLogoutConfirmation) {
+            Alert(
+                title: Text("Confirm Logout"),
+                message: Text("Are you sure you want to log out of your account?"),
+                primaryButton: .destructive(Text("Log Out")) {
+                    loginController.logout()
+                },
+                secondaryButton: .cancel()
+            )
+        }
     }
 }
-
-// MARK: - Main Home View with TabView
+// MARK: - Main Home View with Custom Tab Bar
 struct HomeView: View {
-  
     @ObservedObject var loginController: LoginController
     @StateObject private var homeController = HomeController()
     
     var body: some View {
-        TabView(selection: $homeController.selectedTabIndex) {
-            // Book Tab
-            NavigationStack {
-                BookView(controller: homeController).toolbarBackground(.tabView, for: .tabBar)
+        ZStack(alignment: .bottom) {
+            // Main content based on selected tab
+            ZStack {
+                if homeController.selectedTabIndex == 0 {
+                    NavigationStack {
+                        BookView(controller: homeController)
+                    }
+                } else if homeController.selectedTabIndex == 1 {
+                    NavigationStack {
+                        ScanQRView()
+                    }
+                }
             }
-            .tabItem {
-                Image(systemName: "star.fill")
-                Text("Book")
-            }
-            .tag(0)
             
-            // Scan QR Tab
-            NavigationStack {
-                ScanQRView()
-            }
-            .tabItem {
-                Image(systemName: "qrcode")
-                Text("Scan QR")
-            }
-            .tag(1)
-            .overlay(
+            // Custom Tab Bar
+            VStack(spacing: 0) {
+                VStack(spacing: 0) {
+                    CustomTabBar(selectedTab: $homeController.selectedTabIndex, loginController: loginController)
+                }            }
+            
+            // QR Button overlaid on top
+            Button(action: {
+                homeController.selectedTabIndex = 1
+            }) {
                 ZStack {
                     Circle()
+                        .stroke(.tabView, lineWidth: 10)
                         .fill(Color.primaryOrange)
                         .frame(width: 70, height: 70)
-                        .offset(y: -15)
-                    
-                    Image(systemName: "qrcode")
-                        .resizable()
-                        .aspectRatio(contentMode: .fit)
-                        .frame(width: 30, height: 30)
-                        .foregroundColor(.white)
-                        .offset(y: -15)
+
+                    VStack(spacing: 4) {
+                        Image(systemName: "qrcode")
+                            .resizable()
+                            .scaledToFit()
+                            .frame(width: 28, height: 28)
+                            .foregroundColor(.white)
+                        
+                        Text("Scan QR")
+                            .font(.caption)
+                            .foregroundColor(.white)
+                    }
                 }
-            )
-            
-            // Logout Tab
-            NavigationStack {
-                ProfileView(loginController: loginController)
             }
-            .tabItem {
-                Image(systemName: "person.fill")
-                Text("Log Out")
-            }
-            .tag(2)
+            .offset(y: -30) // Adjust this value to control how much the button overlaps the tab bar
         }
-        .accentColor(.primaryOrange)
     }
 }
+
 
 #Preview {
     HomeView(loginController: LoginController())
