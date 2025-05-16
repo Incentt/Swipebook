@@ -4,9 +4,9 @@
 //
 //  Created by Vincent Wisnata on 15/05/25.
 //
-
 import SwiftUI
 import Combine
+import EventKit
 
 class HomeController: ObservableObject {
     // MARK: - Published properties
@@ -15,8 +15,13 @@ class HomeController: ObservableObject {
     @Published var availableRooms: [Room] = []
     @Published var unavailableRooms: [Room] = []
     @Published var selectedRoom: Room?
-    @Published var bookingSuccess = false
+    @Published var bookingSuccess = false // Keeping for backward compatibility
+    @Published var showBookingSuccess = false // For the modal view
     @Published var availableSessions: [Session] = []
+    @Published var calendarAddSuccess = false
+    
+    @Published var showBookingConfirmation = false
+    @Published var roomToBook: Room? = nil
     
     // Session and room data providers
     private let roomDataProvider = RoomDataProvider.shared
@@ -92,10 +97,13 @@ class HomeController: ObservableObject {
     
     // MARK: - Public methods
     func bookRoom(_ room: Room) {
-        guard let sessionId = selectedSessionId else { return }
-        
-        // Set selected room
-        selectedRoom = room
+        // Store the room to book
+        roomToBook = room
+        // Show confirmation alert
+        showBookingConfirmation = true
+    }
+    func confirmBooking() {
+        guard let room = roomToBook, let sessionId = selectedSessionId else { return }
         
         // Book the session for the room
         let bookingSuccessful = sessionDataProvider.bookSession(
@@ -105,10 +113,70 @@ class HomeController: ObservableObject {
         
         // Show success message
         if bookingSuccessful {
-            bookingSuccess = true
+            // Set the selected room
+            selectedRoom = room
+            
+            // Show the success modal
+            showBookingSuccess = true
             
             // Reload available rooms after booking
             loadAvailableRooms()
+        }
+        
+        // Reset the confirmation state
+        roomToBook = nil
+        showBookingConfirmation = false
+    }
+    
+    // Add a method to cancel booking
+    func cancelBooking() {
+        roomToBook = nil
+        showBookingConfirmation = false
+    }
+
+    func addToCalendar() {
+        guard let session = selectedSession, let room = selectedRoom else {
+            return
+        }
+        
+        let eventStore = EKEventStore()
+        
+        // Request access to the calendar
+        eventStore.requestAccess(to: .event) { granted, error in
+            if granted {
+                // Create a new calendar event
+                let event = EKEvent(eventStore: eventStore)
+                event.title = "Room Booking: \(room.name)"
+                event.notes = "Booked via Swipebook"
+                event.startDate = session.startTime
+                event.endDate = session.endTime
+                event.calendar = eventStore.defaultCalendarForNewEvents
+                
+                // Add location if available
+                event.location = "Room \(room.name)"
+                
+                // Add alarm 15 minutes before start
+                let alarm = EKAlarm(relativeOffset: -15 * 60)
+                event.addAlarm(alarm)
+                
+                do {
+                    try eventStore.save(event, span: .thisEvent)
+                    
+                    // Update UI on main thread
+                    DispatchQueue.main.async {
+                        // Show a success indicator for the calendar addition
+                        self.calendarAddSuccess = true
+                    }
+                } catch {
+                    // Handle error
+                    print("Error saving event: \(error)")
+                }
+            } else {
+                // Handle calendar access denied
+                if let error = error {
+                    print("Calendar access denied: \(error)")
+                }
+            }
         }
     }
     
@@ -116,5 +184,7 @@ class HomeController: ObservableObject {
     func resetBooking() {
         selectedRoom = nil
         bookingSuccess = false
+        showBookingSuccess = false // Make sure to reset this as well
+        calendarAddSuccess = false // Reset calendar success flag
     }
 }

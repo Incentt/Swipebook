@@ -16,7 +16,8 @@ class LoginController: ObservableObject {
     @Published var isAuthenticated: Bool = false
     @Published var showAlert: Bool = false
     @Published var alertMessage: String = ""
-    
+    @Published var showUnauthenticatedView = false
+
     // Add a new property for logout confirmation
     @Published var showLogoutConfirmation: Bool = false
     

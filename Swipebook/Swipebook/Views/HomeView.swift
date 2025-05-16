@@ -6,197 +6,6 @@
 //
 
 import SwiftUI
-
-
-// Feature Tag View
-struct FeatureTag: View {
-    let text: String
-    
-    var body: some View {
-        Text(text)
-            .font(.caption)
-            .padding(.horizontal, 10)
-            .padding(.vertical, 5)
-            .background(Color.black.opacity(0.2))
-            .cornerRadius(15)
-    }
-}
-
-
-// MARK: - Main Views
-struct BookView: View {
-    @ObservedObject var controller: HomeController
-    
-    var body: some View {
-        VStack(spacing: 0) {
-            // Session Slider - single slider that jumps between predefined sessions
-            SessionSlider(
-                selectedSessionId: $controller.selectedSessionId,
-                sessions: controller.availableSessions
-            )
-            .padding(.bottom, 16)
-            
-            
-            // Divider
-            Rectangle()
-                .fill(Color.gray.opacity(0.3))
-                .frame(height: 1)
-                .padding(.horizontal, 20)
-                .padding(.vertical, 8)
-            
-            // Available Rooms Text
-            HStack {
-                Text("Available Rooms")
-                    .font(.title3)
-                    .foregroundColor(.white)
-                
-                Spacer()
-                
-                Text("\(controller.availableRooms.count) Found")
-                    .font(.subheadline)
-                    .foregroundColor(.gray)
-            }
-            .padding(.horizontal, 20)
-            .padding(.vertical, 14)
-            
-            // If no session is selected
-            if controller.selectedSessionId == nil {
-                Spacer()
-                VStack(spacing: 12) {
-                    Image(systemName: "calendar")
-                        .font(.system(size: 50))
-                        .foregroundColor(.gray)
-                    
-                    Text("Select a Session")
-                        .font(.title3)
-                        .foregroundColor(.white)
-                    
-                    Text("Use the slider above to select a time slot")
-                        .font(.subheadline)
-                        .foregroundColor(.gray)
-                        .multilineTextAlignment(.center)
-                }
-                .padding()
-                Spacer()
-            }
-            // If no rooms are available for the selected session
-            else if controller.availableRooms.isEmpty && controller.unavailableRooms.isEmpty {
-                Spacer()
-                VStack(spacing: 12) {
-                    Image(systemName: "calendar.badge.exclamationmark")
-                        .font(.system(size: 50))
-                        .foregroundColor(.gray)
-                    
-                    Text("No Available Rooms")
-                        .font(.title3)
-                        .foregroundColor(.white)
-                    
-                    Text("Try selecting a different session")
-                        .font(.subheadline)
-                        .foregroundColor(.gray)
-                        .multilineTextAlignment(.center)
-                }
-                .padding()
-                Spacer()
-            }
-            // Room lists
-            else {
-                ScrollView {
-                    LazyVStack(spacing: 15) {
-                        // Available rooms section
-                        if !controller.availableRooms.isEmpty {
-                            ForEach(controller.availableRooms) { room in
-                                RoomCard(room: room) {
-                                    controller.bookRoom(room)
-                                }
-                            }
-                        }
-                        
-                        // Unavailable rooms section (if any)
-                        if !controller.unavailableRooms.isEmpty {
-                            // Section divider
-                            Divider()
-                                .padding(.vertical, 16)
-                            
-                            // Unavailable Rooms Header
-                            HStack {
-                                Text("Unavailable Rooms")
-                                    .font(.title3)
-                                    .foregroundColor(.white)
-                                
-                                Spacer()
-                                
-                                Text("\(controller.unavailableRooms.count) Rooms")
-                                    .font(.subheadline)
-                                    .foregroundColor(.gray)
-                            }
-                            .padding(.vertical, 14)
-                            
-                            // Unavailable room cards
-                            ForEach(controller.unavailableRooms) { room in
-                                UnavailableRoomCard(room: room)
-                            }
-                        }
-                    }
-                    .padding(.horizontal, 20)
-                    .padding(.bottom, 100)
-                    .padding(.vertical, 10)
-                }
-            }
-        }
-        .navigationTitle("Book a Room")
-        .navigationBarTitleDisplayMode(.large)
-        .background(Color.background)
-        .alert(isPresented: $controller.bookingSuccess) {
-            Alert(
-                title: Text("Booking Successful"),
-                message: Text(getBookingConfirmationMessage()),
-                dismissButton: .default(Text("OK")) {
-                    controller.resetBooking()
-                }
-            )
-        }
-    }
-    
-    // Helper to get booking confirmation message
-    private func getBookingConfirmationMessage() -> String {
-        guard let session = controller.selectedSession,
-              let room = controller.selectedRoom else {
-            return "You've booked a room successfully."
-        }
-        
-        return "You've booked \(room.name) for \(session.timeRangeString)."
-    }
-    
-    // Helper to calculate and format duration
-    private func getDurationString(from startTime: Date, to endTime: Date) -> String {
-        let minutes = Calendar.current.dateComponents([.minute], from: startTime, to: endTime).minute ?? 0
-        
-        if minutes >= 60 {
-            let hours = minutes / 60
-            let remainingMinutes = minutes % 60
-            
-            if remainingMinutes == 0 {
-                return "\(hours)h"
-            } else {
-                return "\(hours)h \(remainingMinutes)m"
-            }
-        } else {
-            return "\(minutes)m"
-        }
-    }
-}
-
-struct ScanQRView: View {
-    var body: some View {
-        VStack {
-            Text("QR Scanner Coming Soon")
-                .foregroundColor(.white)
-        }
-        .navigationTitle("Scan QR Code")
-    }
-}
-
 // MARK: - Custom Tab Bar Components
 struct CustomTabBar: View {
     @Binding var selectedTab: Int
@@ -261,6 +70,32 @@ struct CustomTabBar: View {
         }
     }
 }
+
+// Feature Tag View
+struct FeatureTag: View {
+    let text: String
+    
+    var body: some View {
+        Text(text)
+            .font(.caption)
+            .padding(.horizontal, 10)
+            .padding(.vertical, 5)
+            .background(Color.black.opacity(0.2))
+            .cornerRadius(15)
+    }
+}
+
+//Update this later
+struct ScanQRView: View {
+    var body: some View {
+        VStack {
+            Text("QR Scanner Coming Soon")
+                .foregroundColor(.black)
+        }
+        .navigationTitle("Scan QR Code")
+    }
+}
+
 // MARK: - Main Home View with Custom Tab Bar
 struct HomeView: View {
     @ObservedObject var loginController: LoginController
@@ -310,7 +145,7 @@ struct HomeView: View {
                     }
                 }
             }
-            .offset(y: -30) // Adjust this value to control how much the button overlaps the tab bar
+            .offset(y: -30)
         }
     }
 }

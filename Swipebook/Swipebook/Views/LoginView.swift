@@ -22,8 +22,8 @@ extension View {
 }
 
 struct LoginView: View {
-    @StateObject private var controller = LoginController()
-    
+    @ObservedObject var controller: LoginController
+
     var body: some View {
         VStack() {
             // Login Title
@@ -126,25 +126,26 @@ struct LoginView: View {
                         .progressViewStyle(CircularProgressViewStyle(tint: .white))
                 } else {
                     Text("Continue").foregroundColor(Color.background)
-                        .fontWeight(.semibold)
+                        .fontWeight(.semibold).frame(maxWidth: .infinity)
                 }
-            }
-            .frame(maxWidth: .infinity)
-            .padding()
-            .background(Color.primaryOrange)
-            .foregroundColor(.white)
-            .cornerRadius(999)
-            .padding(.horizontal)
-            .disabled(controller.email.isEmpty || controller.password.isEmpty || controller.isLoading)
-            .opacity((controller.email.isEmpty || controller.password.isEmpty || controller.isLoading) ? 0.3 : 1)
+            }.frame(maxWidth: .infinity)
+                .padding()
+                .background(Color.primaryOrange)
+                .foregroundColor(.white)
+                .cornerRadius(999)
+                .padding(.horizontal)
+                .disabled(controller.email.isEmpty || controller.password.isEmpty || controller.isLoading)
+                .opacity((controller.email.isEmpty || controller.password.isEmpty || controller.isLoading) ? 0.3 : 1)
+            
             
             // Collab Only
             HStack {
                 Text("I Want To Check Availability")
                     .font(.subheadline)
-                    .foregroundColor(Color .white)
+                    .foregroundColor(Color.white)
                     .foregroundColor(.textGray)
                 Button("Click Here") {
+                    controller.showUnauthenticatedView = true
                 }
                 .fontWeight(.medium)
                 .foregroundColor(.white)
@@ -158,11 +159,14 @@ struct LoginView: View {
                 message: Text(controller.alertMessage),
                 dismissButton: .default(Text("OK"))
             )
+        }.fullScreenCover(isPresented: $controller.showUnauthenticatedView) {
+            UnauthenticatedView()
         }
     }
 }
 
 #Preview {
-    LoginView()                    .background(Color.background)
-
+    LoginView(controller: LoginController())
+        .background(Color.background)
 }
+

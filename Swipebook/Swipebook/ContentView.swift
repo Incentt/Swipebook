@@ -6,7 +6,6 @@
 //
 
 import SwiftUI
-
 struct ContentView: View {
     @StateObject private var loginController = LoginController()
     
@@ -14,15 +13,14 @@ struct ContentView: View {
         ZStack {
             // Set the background color
             Color.background.edgesIgnoringSafeArea(.all)
-        
+            
             if loginController.isAuthenticated {
                 HomeView(loginController: loginController)
             } else {
-                LoginView()
+                LoginView(controller: loginController)
             }
         }
         .onAppear {
-            // Check for existing login session when app starts
             loginController.checkExistingSession()
         }
     }
